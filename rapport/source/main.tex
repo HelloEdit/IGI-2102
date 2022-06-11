@@ -1,0 +1,568 @@
+\documentclass[a4paper,english,french]{article}
+\usepackage{source/packages/preamble}
+\usepackage[section]{minted}
+\usepackage[most,minted]{tcolorbox}
+
+\setlength{\parindent}{0pt}
+\setlength\parskip{1em plus 0.1em minus 0.2em}
+
+\newtcbinputlisting{\myjava}[2][]{%
+  listing engine=minted, minted language=java, minted style=colorful,
+  listing file={#2}, listing only,
+  title={#1},
+  breakable}
+
+\newtcbinputlisting{\myoctave}[2][]{%
+  listing engine=minted, minted language=octave, minted style=colorful,
+  listing file={#2}, listing only,
+  title={#1},
+  breakable}
+
+\title{Analyse comparative des optimisations locales et globales}
+\date{}
+\author{
+  Corentin POUPRY\\
+  \texttt{corentin.poupry@edu.esiee.fr}
+  \and
+  Néo JONAS\\
+  \texttt{neo.jonas@edu.esiee.fr}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+    Ce rapport compare les valeurs de stratégies d'\textbf{optimisation locale} (souvent appelées stratégies gloutonnes) avec les valeurs de stratégies d'\textbf{optimisation globale} calculées par programmation dynamique.
+\end{abstract}
+
+\section*{Introduction}
+
+\subsection*{Problèmes traitées}
+
+Pour pouvoir comparer les comportements des deux stratégies, on s'appuiera sur cinq problèmes d'algorithmique différents, chacun détaillé dans sa section respective
+
+\tableofcontents
+
+\subsection*{Sources}
+
+Tous les programmes utilisés seront fournis en annexe dans ce document mais sont aussi consultable sur le dépot Git du projet, \href{https://github.com/HelloEdit/igi-2102}{accessible ici}.
+
+\subsection*{Méthodologies}
+
+Toutes les données énoncées dans ce rapport sont disponible dans le dépot Git du projet, \href{https://github.com/HelloEdit/igi-2102}{accessible ici}, dans le dossier \texttt{data}. Les données statistiques sont calculées par \href{https://www.gnu.org/software/octave/index}{GNU Octave} au moyen des fonctions énoncées dans la section \href{https://octave.org/doc/v4.0.1/Descriptive-Statistics.html}{26.1 Descriptive Statistics} et présentes dans le script \texttt{stats.m}.
+
+Pour former les histogrammes avec un échantillon de données représentatif, on exécute soit 5000 ou 10000 runs pour obtenir les données les plus représentatif des performances réelles des programmes.
+
+Pour générer les composantes aléatoires en Java, nous avons besoin d'une instance de la classe \texttt{Random}. Pour cela, la méthode largement utilisée est d'en créer une nouvelle à chaque fois que le besoin se fait sentir et de la passer en paramètre pour éviter le coût (conséquent) de sa création. Pour pallier à ça,
+
+\subsection*{Technologies}
+
+Les histogrammes présent dans ce document sont calculés lors de la compilation du rapport \LaTeX avec les données bruts présentes dans \texttt{data}.
+Les différents codes dans ce rapport ont été compilés et exécutés avec succès sous OpenJDK v18.0.1.1.
+
+\section{Problème du chemin le moins coûteux du robot}
+
+Ce problème est tiré de l'exercice 6 du TD 5 de l'unité \texttt{IGI-2102}.
+
+\subsection*{Détails}
+
+Un petit robot est place en case  $(l,c) = (0,0)$ d'une grille à $L$ lignes et $C$ colonnes. Le
+robot doit atteindre la case $(l,c) = (L - 1,C - 1)$. Ses mouvements possibles sont Nord (\textit{N}), Nord-Est (\textit{NE}),
+Est (\textit{E}).
+
+Le robot étant sur la case $(l - 1,c)$, le déplacement  \textit{N} le conduit en case $(l,c)$ avec un coût $n(l - 1,c)$.
+Le robot étant sur la case $(l - 1,c - 1)$ le déplacement \textit{NE} le conduit en case $(l,c)$ avec un coût $ne(l - 1,c - 1)$.
+Le robot étant sur la case $(l,c - 1)$ le déplacement \textit{E} le conduit en case $(l,c)$ avec un coût $e(l,c - 1)$.
+
+Afin que le robot ne sorte pas de la grille, les mouvements \textit{N} depuis une case située en ligne $l = L - 1$ sont de
+coût infini. De même: les mouvements \textit{NE} depuis une case située en ligne $l = L - 1$ ou colonne $c = C - 1$,
+et les mouvements \textit{E} depuis une case située en colonne $c = C - 1$.
+
+\subsection*{Résolution}
+
+\paragraph*{Optimisation globale} La stratégie optimale a été étudiée en TD et n'est pas détaillé dans ce rapport. Cependant, les commentaires du code sont disponibles en annexe de ce rapport pour la compréhension de la résolution du problème par programmation dynamique.
+
+\paragraph*{Optimisation locale} Le robot choisira toujours le mouvement le moins coûteux entre ceux qui lui sont possibles. Pour cette stratégie, on s'attend déjà à avoir un énorme écart entre l'optimisation locale et globale tant la stratégie est d'une naïveté extrême.
+
+\subsection*{Analyse statistique}
+
+\begin{figure}
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    title style={xshift=2.5ex,},
+    ybar,
+    ymin=0,
+    ylabel={Occurence},
+    xticklabel style={
+        /pgf/number format/fixed,
+        /pgf/number format/precision=5
+    },
+    scaled x ticks=false,
+    /pgf/number format/.cd,
+        use comma,
+        1000 sep={}
+]
+\addplot +[
+    hist={
+        bins=100,
+        data min=0,
+        data max=1.5
+    }
+] table [y index=0] {../../data/minimum_path_robot.csv};
+\end{axis}
+\end{tikzpicture}
+\caption{Différence relative entre stratégie optimal et naïf pour le chemin le moins coûteux du robot}
+\end{figure}
+
+\begin{center}
+\begin{table}[htbp]
+  \centering
+    \begin{tabular}{lccccc}
+        \toprule
+        Stratégie gloutonne                & Moyenne   & Médiane       & Variance     & Écart type    \\
+        \midrule
+        Par choix de la case minimum  & 0.77633   & 0.82928      & 0.056029       & 0.23671      \\
+        \bottomrule
+    \end{tabular}
+    \caption{Statistiques pour le problème du chemin minimum du robot}
+\end{table}
+\end{center}
+
+On notera qu'on est ici sur une \textit{minimisation} et non {maximisation}, d'où l'utilisation de la formule suivante \[ \frac{g - v^*}{v^*} \]
+
+On remarquera qu'une majorité d'occurrences se font au niveau du $1$.
+%
+\begin{align*}
+\frac{g - v^*}{v^*} = 1 &\Leftrightarrow g - v^* = v^* \\
+&\Leftrightarrow g = 2 v^*
+\end{align*}
+%
+On peut alors dire que pour une majorité des valeurs, \textit{la stratégie gloutonne est deux fois moins performante que la stratégie optimale dans ce cadre du problème en terme de valeur retournée}.
+
+\section{Problème des sacs de valeur maximum} \label{sec:bag}
+
+\subsection*{Détails}
+
+On est en présence d'un ensemble de $n$ objets, un objet $i$ possédant une taille et une valeur notées respectivement $t_i$ et $v_i$. La question étant, pour un sac de contenance $C$, calculer un sous-ensemble d'objet de taille inférieure ou égale à la contenance $C$ du sac et de valeur maximum.
+
+\subsection*{Résolution}
+
+\paragraph*{Optimisation globale} La stratégie optimale a été étudiée en cours et n'est pas détaillé dans ce rapport. Cependant, les commentaires du code sont disponibles en annexe de ce rapport pour la compréhension de la résolution du problème par programmation dynamique.
+
+\paragraph*{Optimisation locale} Pour organiser les objets et établir un ordre d'insertion dans le sac de contenance $C$. Pour cela, on va on peut s'intéresser au ratio valeur / poids des objets. Pour un objet $i$, on lui associe le ratio suivant
+\[ \text{ratio}(i) = \frac{v_i}{t_i} \]
+
+Mais on peut aussi imaginer un façon beaucoup plus simpliste d'ordonner l'ensemble des objets, à savoir uniquement sur la base de la valeur $v_i$ ou de la taille $t_i$ d'un objet $i$ pour ensuite essayer de mettre les objets les plus intéressants dans le sac et ainsi de suite.
+
+\subsection*{Analyse statistique}
+
+\begin{figure}
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    title style={xshift=2.5ex,},
+    ybar,
+    ymin=0,
+    ylabel={Occurence},
+    xticklabel style={
+        /pgf/number format/fixed,
+        /pgf/number format/precision=5
+    },
+    scaled x ticks=false,
+    /pgf/number format/.cd,
+        use comma,
+        1000 sep={}
+]
+\addplot +[
+    hist={
+        bins=100,
+        data max=1
+    }
+] table [y index=0] {../../data/maximum_value_bag_value.csv};
+\end{axis}
+\end{tikzpicture}
+\caption{Différence relative entre chemin optimal et naïf (par valeur) pour le sac de valeur maximale}
+\end{figure}
+
+\begin{figure}
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    title style={xshift=2.5ex,},
+    ybar,
+    ymin=0,
+    ylabel={Occurence},
+    xticklabel style={
+        /pgf/number format/fixed,
+        /pgf/number format/precision=5
+    },
+    scaled x ticks=false,
+    /pgf/number format/.cd,
+        use comma,
+        1000 sep={}
+]
+\addplot +[
+    hist={
+        bins=100,
+        data max=1.1
+    }
+] table [y index=0] {../../data/maximum_value_bag_size.csv};
+\end{axis}
+\end{tikzpicture}
+\caption{Différence relative entre chemin optimal et naïf (par taille) pour le sac de valeur maximale}
+\end{figure}
+
+\begin{figure}
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    title style={xshift=2.5ex,},
+    ybar,
+    ymin=0,
+    ylabel={Occurence},
+    xticklabel style={
+        /pgf/number format/fixed,
+        /pgf/number format/precision=5
+    },
+    scaled x ticks=false,
+    /pgf/number format/.cd,
+        use comma,
+        1000 sep={}
+]
+\addplot +[
+    hist={
+        bins=100,
+        data max=0.3
+    }
+] table [y index=0] {../../data/maximum_value_bag_ratio.csv};
+\end{axis}
+\end{tikzpicture}
+\caption{Différence relative entre chemin optimal et naïf (par ratio) pour le sac de valeur maximale}
+\end{figure}
+
+\begin{center}
+\begin{table}[htbp]
+    \centering
+    \begin{tabular}{lccccc}
+        \toprule
+        Stratégie gloutonne & Moyenne   & Médiane   & Variance      & Écart type    \\
+        \midrule
+        Naïve par ratio     & 0.0042197 & 0.0010018 & 0.00014425    & 0.01201     \\
+        Naïve par valeur    & 0.15141 & 0.10767 & 0.022986    & 0.15161      \\
+        Naïve par taille    & 0.63943 & 0.69247 & 0.049271    & 0.22197     \\
+        \bottomrule
+    \end{tabular}
+    \caption{Statistiques pour le problème du sac de valeur maximale}
+\end{table}
+\end{center}
+
+On voit très clairement que la différence de résultat entre les trois stratégies naïves est grande. Cependant, la stratégie par ratio vient donner des résultats plutôt proches de la stratégie optimale (visible sur le graphe par la faible dispersion), venant supporter l'hypothèse que \textit{la stratégie gloutonne par ratio est ici adaptée pour donner une résultat approximant correctement le meilleur résultat possible}.
+
+\subsection*{Digression sur Java}
+
+Pour pouvoir trier le tableau $T$ contenant les objets Java représentant donc nos véritables << objets >> du problème, on pourrait d'aborder penser à implémenter l'interface \texttt{Comparable} sur ces objets. Bien que très facile à mettre en place, cette méthode pose un problème : en effet, il ne sera d'implémenter qu'une seule stratégie de trie. Pour pallier à ça, Java 8 introduit la fonction statique \texttt{Comparator.comparing}, permettant de créer un méthode de comparaison entre deux objets et de pouvoir l'appliquer avec \texttt{Arrays.sort}.
+
+\section{Problème de la répartition optimale d'un temps de travail} \label{sec:planning}
+
+\subsection*{Détails}
+
+Supposons qu'un étudiant dispose de $H$ heures de révision et que pour chaque unité $i$, ledit étudiant a estimé la note qu'il obtiendrait en consacrant $t$ heures de révision à cette unité. Ce problème consiste à trouver la répartition optimale des $H$ heures afin de maximiser la moyenne obtenue (ce qui revient à maximiser la somme des notes des $i$ unités).
+
+\subsection*{Résolution}
+
+\paragraph*{Optimisation globale} La stratégie optimale a été étudiée en cours et n'est pas détaillé dans ce rapport. Cependant, les commentaires du code sont disponibles en annexe de ce rapport pour la compréhension de la résolution du problème par programmation dynamique.
+
+\paragraph*{Optimisation locale} Pour résoudre ce problème naïvement, on peut proposer un algorithme heuristique simple: soit $e(i, t)$ l'estimation de la note pour l'unité $i$ avec un temps de révision $t$. Supposons qu'il nous reste $h \leq H$ heures de révisions à placer, on choisira de placer une heure supplémentaire de révision dans l'unité qui maximisera la valeur suivante \[ e(i, t + 1) - e(i, t) \] Ainsi, on pourra s'assurer localement que travailler cette unité est la meilleure décision sur le moment.
+
+\subsection*{Analyse statistique}
+
+\begin{figure}
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    title style={xshift=2.5ex,},
+    ybar,
+    ymin=0,
+    ylabel={Occurence},
+    xticklabel style={
+        /pgf/number format/fixed,
+        /pgf/number format/precision=5
+    },
+    scaled x ticks=false,
+    /pgf/number format/.cd,
+        use comma,
+        1000 sep={}
+]
+\addplot +[
+    hist={
+        bins=100,
+        data max=0.4
+    }
+] table [y index=0] {../../data/optimal_planning.csv};
+\end{axis}
+\end{tikzpicture}
+\caption{Différence relative entre chemin optimal et naïf pour le problème de répartition optimale d'un temps de travail}
+\end{figure}
+
+\begin{center}
+\begin{table}[htbp]
+    \centering
+    \begin{tabular}{lccccc}
+        \toprule
+        Stratégie gloutonne             & Moyenne   & Médiane   & Variance      & Écart type    \\
+        \midrule
+        Par maximisation de différence  & 0.057978 & 0.043478 & 0.0041908    & 0.064737      \\
+        \bottomrule
+    \end{tabular}
+    \caption{Statistiques pour le problème de la répartition optimale d'un temps de travail}
+\end{table}
+\end{center}
+
+\textbf{ATTENTION} pour ce problème, nous avons identifié ce qui nous semble être un problème avec la stratégie optimale, en effet, la récupération du gain maximum \texttt{M[E][S]} semble retourner la somme des gains maximums de chaque entrepôt, expliquant un histogramme aussi défavorable pour la stratégie gloutonne.
+
+\section{Problème de la répartition optimale d'un stock} \label{sec:stock}
+
+\subsection*{Détails}
+
+Un grossiste dispose d’un stock $S$ a répartir sur $n$ entrepôts. Pour tout entrepôt $i$, $i \in [0:n]$, et tout stock $s$, $s \in [0:S + 1]$, ce grossiste connaît le gain $g(i,s)$ obtenu en livrant le stock $s$ à l'entrepôt $i$. On demande de calculer le gain $m(n,S)$ d’une répartition optimale du stock $S$ sur les $n$ entrepôts.
+
+\subsection*{Résolution}
+
+\paragraph*{Optimisation globale} La stratégie optimale a été étudiée en cours et n'est pas détaillé dans ce rapport. Cependant, les commentaires du code sont disponibles en annexe de ce rapport pour la compréhension de la résolution du problème par programmation dynamique.
+
+\paragraph*{Optimisation locale} Pour l'optimisation locale, sur le modèle de l'algorithme d'optimisation locale pour le problème de la répartition optimale d'un temps de travail, on cherche à maximiser la différence de grain entre un stock $s$ et $s + 1$ d'un entrepôt $i$, soit le calcul suivant \[ g(i, s + 1) - g(i, s) \]
+
+\subsection*{Analyse statistique}
+
+\begin{figure}
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    title style={xshift=2.5ex,},
+    ybar,
+    ymin=0,
+    ylabel={Occurence},
+    xticklabel style={
+        /pgf/number format/fixed,
+        /pgf/number format/precision=5
+    },
+    scaled x ticks=false,
+    /pgf/number format/.cd,
+        use comma,
+        1000 sep={}
+]
+\addplot +[
+    hist={
+        bins=100,
+        data max=0.3
+    }
+] table [y index=0] {../../data/optimal_warehouse.csv};
+\end{axis}
+\end{tikzpicture}
+\caption{Différence relative entre chemin optimal et naïf pour le problème de répartition optimale d'un stock}
+\end{figure}
+
+\begin{center}
+\begin{table}[htbp]
+    \centering
+    \begin{tabular}{lccccc}
+        \toprule
+        Stratégie gloutonne             & Moyenne   & Médiane   & Variance      & Écart type    \\
+        \midrule
+        Par maximisation de différence  & 0.055558 & 0.042553 & 0.0031038    & 0.055712      \\
+        \bottomrule
+    \end{tabular}
+    \caption{Statistiques pour le problème de répartition optimale d'un stock}
+\end{table}
+\end{center}
+
+La dispersion des valeurs est, pour la majorité d'entre elles, inférieure à 0.2 dans le graphique ci-dessus, indiquant une certaine efficacité de l'algorithme naïf.
+
+\section{Problème du chemin minimum dans un triangle}
+
+\subsection*{Détails}
+
+Cet exercice est le même que celui des exercices \href{https://projecteuler.net/problem=18}{18} et \href{https://projecteuler.net/problem=67}{67} du \href{https://projecteuler.net}{Projet Euler}.
+
+En commençant par le haut du triangle ci-dessous et en se déplaçant vers les chiffres adjacents de la rangée inférieure, trouver le chemin maximum rejoignant le rangée inférieure du triangle.
+
+\begin{figure}
+\centering
+\begin{equation*}
+\begin{array}{c}
+\begin{array}{c}
+75 \\
+95 \quad 64 \\
+17 \quad 47 \quad 82 \\
+18 \quad 35 \quad 87 \quad 10 \\
+20 \quad 04 \quad 82 \quad 47 \quad 65 \\
+19 \quad 01 \quad 23 \quad 75 \quad 03 \quad 34 \\
+88 \quad 02 \quad 77 \quad 73 \quad 07 \quad 63 \quad 67 \\
+99 \quad 65 \quad 04 \quad 28 \quad 06 \quad 16 \quad 70 \quad 92 \\
+41 \quad 41 \quad 26 \quad 56 \quad 83 \quad 40 \quad 80 \quad 70 \quad 33 \\
+41 \quad 48 \quad 72 \quad 33 \quad 47 \quad 32 \quad 37 \quad 16 \quad 94 \quad 29 \\
+53 \quad 71 \quad 44 \quad 65 \quad 25 \quad 43 \quad 91 \quad 52 \quad 97 \quad 51 \quad 14 \\
+70 \quad 11 \quad 33 \quad 28 \quad 77 \quad 73 \quad 17 \quad 78 \quad 39 \quad 68 \quad 17 \quad 57 \\
+91 \quad 71 \quad 52 \quad 38 \quad 17 \quad 14 \quad 91 \quad 43 \quad 58 \quad 50 \quad 27 \quad 29 \quad 48 \\
+63 \quad 66 \quad 04 \quad 68 \quad 89 \quad 53 \quad 67 \quad 30 \quad 73 \quad 16 \quad 69 \quad 87 \quad 40 \quad 31 \\
+04 \quad 62 \quad 98 \quad 27 \quad 23 \quad 09 \quad 70 \quad 98 \quad 73 \quad 93 \quad 38 \quad 53 \quad 60 \quad 04 \quad 23 \\
+\end{array}
+\end{array}
+\end{equation*}
+\caption{Triangle présenté dans l'exercice 18 du Projet Euler}
+\end{figure}
+
+\subsection*{Résolution}
+
+\subsubsection*{Mise en place}
+
+Posons le problème: considérons que le triangle à traiter est des $m$ niveaux que l'on numérotera de $0$ (le haut du triangle) à $m - 1$ (le bas du triangle). On peut remarquer qu'au niveau 0 on à 1 valeurs, au niveau 1, 2 valeurs, au niveau 2, 3 valeurs etc... Ainsi, le nombre $n$ de valeurs dans un triangle à $m$ niveaux est la somme des $m$ premiers entiers, soit
+\begin{equation} \label{value-level}
+n = \sum_{i=0}^m i = \frac{m(m+1)}{2}
+\end{equation}
+On stockera les données du triangle dans un tableau $T = [0 : n]$. Une telle structure de donnée pose une question cruciale pour la résolution du problème : supposons que nous avons la valeur associé à l'index $i$. Comment savoir l'indice du descendant de gauche et droit de la valeur associé à l'indice $i$ ?
+
+Pour ça il faudra procéder comme suit:
+\begin{itemize}
+\item Trouver le niveau $l$ dans le triangle auquel appartient $i$.
+\item Déduire le niveau $p$ de l'indice $i$ dans le niveau $l$.
+\item Ayant le niveau $l$ et la position $p$ de l'indice $i$ dans son niveau, retourner l'indice $g(i)$ de son
+descendant gauche
+\end{itemize}
+
+\paragraph*{Calcul du niveau $l$} Supposons que l'on a une valeur d'indice $i$ se trouvant à un niveau $l$ inconnu. Il faut d'abord remarquer que l'équation (\ref{value-level}) donnera la position dans le tableau de la dernière valeur du triangle.
+Si on note l'indice de la dernière valeur $i_{max}$, la formule (\ref{value-level}) nous donnera donc, pour un triangle à $m$ niveaux, l'indice $i_{max} + 1$, l'index des tableaux commençant à 0 en Java. Ainsi on peut poser \[ \frac{l(l+1)}{2} - 1 = i_{max} \]
+A partir de là, il est très simple de trouver le niveau $l$ correspondant à un indice $i$ d'une valeur séquentiellement. Pour cela, on augmentera le niveau $l$ cherché jusqu'à ce que $i_{max} \leq i$ (on utilisera donc $i_{max} < i$ comme condition d'arrêt).
+
+\begin{figure}
+\centering
+\caption{Script python pour déterminer le niveau $l$ d'une valeur d'indice $i$}
+\begin{minted}{python}
+while True:
+    indice = int(input("Indice : "))
+    level = 1
+
+    while 0.5 * level * (level + 1) - 1 < indice:
+        level += 1
+
+    print(level - 1)
+\end{minted}
+\end{figure}
+
+\paragraph*{Calcul de la position $p$} En suivant la remarque du paragraphe précédent, pour déterminer la position $p$ d'une valeur d'indice $i$, il suffit de récupérer $i_max$, qui sera la $m$-ème valeur de la ligne, et de faire la différence avec $i$. Une fois cette différence trouvé (notée $\Delta i$), on sait que sur un niveau $m$, il y a $m + 1$ valeurs, alors la position $p$ de la valeur $i$ sera donnée par $p = m - \Delta i$
+
+\begin{figure}
+\centering
+\caption{Algorithme pour déterminer le niveau $l$ et la position $p$ d'une valeur d'indice $i$}
+\begin{minted}{python}
+while True:
+    i = int(input("Indice : "))
+
+    l = 1
+    while 0.5 * l * (l + 1) - 1 < i:
+        l += 1
+
+    i_max = 0.5 * l * (l + 1) - 1
+
+    print(f"- l'indice {i} est sur le niveau l = {l - 1}")
+    print(f"- le niveau {l - 1} admet i_max = {i_max}")
+
+    diff = i_max - i
+    print(f"- l'indice {i} est en position {l - 1 - diff}")
+\end{minted}
+\end{figure}
+
+\paragraph*{Calcul de $g(i)$ et $d(i)$} Nous savons désormais la position $p$ et le niveau $l$ de la valeur à 'indice $i$ ainsi que l'indice $i_max$ de la dernière valeur du niveau $l$. Il est évident que $i_max + 1$ est la première valeur du niveau $l + 1$. De plus, on sait que le descendant sera de position $p$ dans le niveau $l + 1$, ce qui nous fait écrire que \[ g(i) = i_{max} + 1 + p \] Évidemment, il suit que le descendant à droite $d(i)$ sera calculé de la façon suivante \[ d(i) = g(i) + 1 \]
+
+\subsubsection*{Stratégie}
+
+\paragraph*{Optimisation locale} Pour l'optimisation locale, en partant du haut du triangle de niveau $m$, il suffit de choisir le minimum entre le descendant à droite et le descendant à gauche et ce à chaque étape jusqu'à arriver au niveau $m - 1$.
+
+\paragraph*{Optimisation globale} La programmation dynamique s'applique particulièrement bien dans ce problème. On suppose le problème résolu, on est alors au niveau $m-1$. Soit $T$ le tableau contenant les données du triangle.
+
+Si on est sur une feuille de l'abre on aura \[ m(0) = T[0] \] Sinon, on aura alors \[ m(0) = \max(m(g(0)), m(d(0))) + T[0] \]
+
+En généralisant, on aura pour tout ce qui n'est pas une feuille de l'arbre l'équation de récurrence suivante \[ m(i) = max(m(g(i)), m(d(i))) + T[i] \]
+
+On implémente alors tout cela dans le code.
+
+\subsection*{Analyse statistique}
+
+\begin{figure}
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    title style={xshift=2.5ex,},
+    ybar,
+    ymin=0,
+    ylabel={Occurence},
+    xticklabel style={
+        /pgf/number format/fixed,
+        /pgf/number format/precision=5
+    },
+    scaled x ticks=false,
+    /pgf/number format/.cd,
+        use comma,
+        1000 sep={}
+]
+\addplot +[
+    hist={
+        bins=100,
+        data max=0.3
+    }
+] table [y index=0] {../../data/maximum_path_triangle.csv};
+\end{axis}
+\end{tikzpicture}
+\caption{Différence relative entre chemin optimal et naïf pour le problème du chemin maximum dans un triangle}
+\end{figure}
+
+\begin{center}
+\begin{table}[htbp]
+    \centering
+    \begin{tabular}{lccccc}
+        \toprule
+        Stratégie gloutonne             & Moyenne   & Médiane   & Variance      & Écart type    \\
+        \midrule
+        Par choix du noeud maximum  & 0.084741 & 0.085569 & 0.0024415    & 0.049411      \\
+        \bottomrule
+    \end{tabular}
+    \caption{Statistiques pour le problème de répartition optimale d'un stock}
+\end{table}
+\end{center}
+
+\section{Conclusion}
+
+Dans ce rapport nous avons pu constater l'étendu de l'écartement des stratégies d'optimisation locale par rapport aux stratégies d'optimisation globale. Avoir une analyse statistique de ces problèmes permet de faire des choix cohérents avec le but cherché : savoir le degré de précision que l'on veut atteindre permet de choisir en connaissance de cause l'approche qu'on utilisera. Certaines différences sont énormes, d'autres beaucoup plus proche, montrant que toutes les stratégies d'optimisation locales ne se valent pas.
+
+\newpage
+\listoffigures
+\listoftables
+
+\newpage
+\begin{appendix}
+
+\section{Codes}
+
+Ici sont présentés les codes utilisés dans le cadre de ce projet
+
+\subsection{Utilitaires}
+\myjava[Utils.java]{../../src/Utils.java}
+\myoctave[stats.m]{../../src/stats.m}
+
+\subsection{Code pour le chemin minimum du robot}
+\myjava[MinimumPathRobot.java]{../../src/MinimumPathRobot.java}
+
+\subsection{Code pour le sac de valeur maximale}
+\myjava[MaximumValueBag.java]{../../src/MaximumValueBag.java}
+
+\subsection{Code pour la répartition optimale d'un stock}
+\myjava[OptimalWarehouse.java]{../../src/OptimalWarehouse.java}
+
+\subsection{Code pour le chemin maximum dans un triangle}
+\myjava[MaximumPathTriangle.java]{../../src/MaximumPathTriangle.java}
+
+\end{appendix}
+
+\end{document}

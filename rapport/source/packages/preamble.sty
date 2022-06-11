@@ -1,0 +1,71 @@
+% This file contains the commands and packages I am used to work with.
+% Feel free to comment some of them to ensure the lowest possible compilation time.
+\ProvidesPackage{source/packages/preamble}
+
+% General
+% specifies the encoding of the source file
+\usepackage[utf8]{inputenc}
+% allows to use accents directly in source code
+\usepackage[T1]{fontenc}
+% manages culturally-determined typographical rules
+\usepackage{babel}
+% use latin-modern font
+\usepackage{lmodern}
+% handle multi-file projects more comfortably
+\usepackage{subfiles}
+% improved interface for floating objects
+\usepackage{float}
+% better list
+\usepackage{enumitem}
+% include graphic
+\usepackage{graphicx}
+% customize page layout
+\usepackage{geometry}
+
+\usepackage{booktabs}
+\setlength\heavyrulewidth{0.20ex}
+\setlength\cmidrulewidth{0.10ex}
+\setlength\lightrulewidth{0.10ex}
+
+% Graphics
+% creates beautiful graphics
+% \usepackage{tikz}
+
+% Mathematics
+% enhance the appearance of mathematics document
+\usepackage{mhsetup}
+% mathematical facilities for LaTeX (loads amsmath)
+\usepackage{mathtools}
+% provides an extended mathematical symbol collection (loads amsfonts)
+\usepackage{amssymb}
+% typesetting theorems
+\usepackage{amsthm}
+\usepackage{thmtools}
+% draw high-quality function plots
+\usepackage{pgfplots}
+\usepgfplotslibrary{statistics}
+
+% shortcuts for usual sets
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\C}{\mathbb{C}}
+
+% Misc
+% handle cross-referencing commands in LaTeX
+\usepackage[hyphens]{url}
+\usepackage{hyperref}
+% bibliographic facilities
+% \usepackage{biblatex}
+
+% Configuration
+% set compatibility version of pgfplots
+% \pgfplotsset{compat = 1.17}
+% colours hyperlinks in blue
+% \hypersetup{urlcolor=blue, colorlinks=true}
+% use "H" (which means PUT IT HERE) as default placement for figure
+\floatplacement{figure}{H}
+% set images path
+\graphicspath{{source/images}}
+
